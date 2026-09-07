@@ -86,7 +86,7 @@ th,td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left;font-size:12px
 <button onclick="importExcel(false)">Add Imported Records</button>
 <button onclick="importExcel(true)">Replace Current Records</button>
 </div>
-<p id="importMsg" class="small"></p>
+<p id="importMsg" class="small"></p><p class="small">Tip: the importer accepts common variations of your Excel column names. After import, check the detected columns message if any field is still missing.</p>
 </div>
 <div class="panel">
 <h3>WhatsApp Testing Status Update</h3>
@@ -128,30 +128,50 @@ th,td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left;font-size:12px
 <script>
 const initialRecords = [{"di": ""}];
 const aliases = {
- di:['DI No.','DI No','DI Number','DI No/Number'],
- didate:['DI Date','Date'],
- material:['Material','Material Name','Item','Material Description'],
- supplier:['Supplier','Supplier Name','Vendor','Vendor Name'],
- store:['Store','Division','Store Name','Store/Division'],
- agency:['Testing Agency','Testing Lab','Lab','Laboratory','Lab Name','Agency'],
- testdate:['Testing Date','Test Date'],
- section:['Laboratory Section','Lab Section','Section','ERDA Section'],
- status:['Test Status','Test Result','Result','Status'],
- overall:['Overall Status','Overall'],
- remarks:['Remarks','Remark','Comments','Comment']
+ di:['DI No.','DI No','DI Number','DI NO','DI No/Number','Dispatch Instruction No','Dispatch No','DI'],
+ didate:['DI Date','Date','DI Dt','DI DATE','Dispatch Date'],
+ material:['Material','Material Name','Item','Material Description','Material Details','Description','Name OF Item','Name of Item'],
+ supplier:['Supplier','Supplier Name','Vendor','Vendor Name','Firm Name','Party Name','Supplier Name'],
+ store:['Store','Division','Store Name','Store/Division','DSO','Store / Division','Selected Store'],
+ agency:['Testing Agency','Testing Agency/LAB','Testing Agency / LAB','Testing Lab','Lab','Laboratory','Lab Name','Agency','Testing Centre','Testing Center','Name of LAB','Name OF LAB'],
+ testdate:['Testing Date','Test Date','Testing Dt','Test Dt','Date of Testing','Sample Send To LAB Date'],
+ section:['Laboratory Section','Lab Section','Section','ERDA Section','Test Section'],
+ status:['Test Status','Testing Status','Test Result','Testing Result','Result','Status','Testing Status/Result'],
+ overall:['Overall Status','Overall','Final Status'],
+ remarks:['Remarks','Remark','Comments','Comment','Observation','Observations','Action']
 };
 let records = JSON.parse(localStorage.getItem('rsoTestingRecordsV5') || 'null') || initialRecords.map(normalizeRecord);
 let editIndex = -1;
 
 function clean(v){return v==null?'':String(v).trim()}
+function formatDateValue(v){
+ if(v===null||v===undefined||v==='') return '';
+ if(v instanceof Date && !isNaN(v)) return String(v.getDate()).padStart(2,'0')+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+v.getFullYear();
+ const x=clean(v);
+ const m=x.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+ if(m) return m[3].padStart(2,'0')+'-'+m[2].padStart(2,'0')+'-'+m[1];
+ const m2=x.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+ if(m2) return m2[1].padStart(2,'0')+'-'+m2[2].padStart(2,'0')+'-'+m2[3];
+ return x;
+}
+
 function normalizeKey(k){return clean(k).toLowerCase().replace(/[^a-z0-9]/g,'')}
 function pick(row, keys){
  const map={}; Object.keys(row).forEach(k=>map[normalizeKey(k)]=row[k]);
  for(const k of keys){const v=map[normalizeKey(k)]; if(v!==undefined && clean(v)!=='') return clean(v)}
+ const targets=keys.map(normalizeKey);
+ for(const actual of Object.keys(map)){
+   if(!actual) continue;
+   for(const target of targets){
+     if(actual.includes(target) || target.includes(actual)){
+       const v=clean(map[actual]); if(v!=='') return v;
+     }
+   }
+ }
  return '';
 }
 function normalizeRecord(row){
- return {di:pick(row,aliases.di),didate:pick(row,aliases.didate),material:pick(row,aliases.material),supplier:pick(row,aliases.supplier),store:pick(row,aliases.store),agency:pick(row,aliases.agency),testdate:pick(row,aliases.testdate),section:pick(row,aliases.section),status:pick(row,aliases.status)||'Testing Pending',overall:pick(row,aliases.overall),remarks:pick(row,aliases.remarks)};
+ return {di:pick(row,aliases.di),didate:formatDateValue(pick(row,aliases.didate)),material:pick(row,aliases.material),supplier:pick(row,aliases.supplier),store:pick(row,aliases.store),agency:pick(row,aliases.agency),testdate:formatDateValue(pick(row,aliases.testdate)),section:pick(row,aliases.section),status:pick(row,aliases.status)||'Testing Pending',overall:pick(row,aliases.overall),remarks:pick(row,aliases.remarks)};
 }
 function save(){localStorage.setItem('rsoTestingRecordsV5',JSON.stringify(records));updateDashboard();populateAgencyFilter();renderTable();populateWaLabs();renderSummary();generateLabWhatsApp()}
 function showTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='records'){populateAgencyFilter();renderTable();}if(id==='reports'){populateWaLabs();renderSummary();generateLabWhatsApp()}}
