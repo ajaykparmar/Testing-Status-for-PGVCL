@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RSO Jamnagar – Testing Management</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#172033}
+header{background:#0b4f8a;color:#fff;padding:18px 22px;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:22px}.sub{opacity:.85;margin-top:5px;font-size:13px}
+nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;background:#fff;border-bottom:1px solid #ddd}
+button,.btn{border:0;border-radius:7px;padding:9px 13px;background:#0b4f8a;color:#fff;cursor:pointer;font-weight:600}
+button.secondary{background:#e9eef5;color:#18314b}.danger{background:#b42318!important}
+main{padding:18px;max-width:1500px;margin:auto}.tab{display:none}.tab.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px #0001}
+.num{font-size:28px;font-weight:700;color:#0b4f8a}.label{font-size:12px;color:#667085;margin-top:4px}
+.panel{background:#fff;border-radius:10px;padding:16px;margin-top:16px;box-shadow:0 2px 8px #0001}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+label{font-size:12px;font-weight:700;color:#475467;display:block;margin-bottom:5px}
+input,select,textarea{width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:7px;background:#fff}
+textarea{min-height:70px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tablewrap{overflow:auto;margin-top:12px}table{border-collapse:collapse;width:100%;min-width:1100px;background:#fff}
+th,td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left;font-size:12px;vertical-align:top}th{background:#eef4fa;position:sticky;top:0}
+.badge{padding:4px 7px;border-radius:12px;background:#eef2ff;display:inline-block;font-size:11px}
+.small{font-size:12px;color:#667085}.success{color:#087443}.warn{color:#a15c00}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;padding:15px;z-index:20}
+.modal.open{display:flex}.modalbox{background:#fff;border-radius:12px;max-width:900px;width:100%;max-height:90vh;overflow:auto;padding:18px}
+</style>
+</head>
+<body>
+<header><h1>RSO Jamnagar – Testing Management App</h1><div class="sub">DI • Material • Supplier • Testing • Reports • Excel Import</div></header>
+<nav>
+<button onclick="showTab('dashboard')">Dashboard</button>
+<button onclick="showTab('records')">DI / Testing Records</button>
+<button onclick="showTab('reports')">Reports & Excel</button>
+</nav>
+<main>
+<section id="dashboard" class="tab active">
+<div class="cards">
+<div class="card"><div class="num" id="cTotal">0</div><div class="label">Total DI Records</div></div>
+<div class="card"><div class="num" id="cPending">0</div><div class="label">Testing Pending</div></div>
+<div class="card"><div class="num" id="cUnder">0</div><div class="label">Under Testing</div></div>
+<div class="card"><div class="num" id="cConform">0</div><div class="label">Conform</div></div>
+<div class="card"><div class="num" id="cNon">0</div><div class="label">Doesn't Conform</div></div>
+<div class="card"><div class="num" id="cReport">0</div><div class="label">Report Pending</div></div>
+</div>
+<div class="panel"><b>Quick actions</b><div class="actions">
+<button onclick="openEditor()">+ Add New DI</button>
+<button onclick="showTab('reports')">Import Excel</button>
+<button onclick="downloadCSV()">Export Current Data</button>
+</div></div>
+</section>
+
+<section id="records" class="tab">
+<div class="panel">
+<div class="grid">
+<div><label>Search</label><input id="search" oninput="renderTable()" placeholder="DI No., material, supplier, store..."></div>
+
+<div><label>Testing Agency</label><select id="filterAgency" onchange="renderTable()"><option value="">All Agencies</option></select></div>
+<div><label>Lab Section</label><select id="filterSection" onchange="renderTable()">
+<option value="">All Sections</option><option>Cable Section</option><option>SMC Section</option><option>Transformer Section</option><option>Switchgear Section</option><option>Material Section</option><option>Oil Section</option>
+</select></div>
+<div><label>Testing Status</label><select id="filterOverall" onchange="renderTable()">
+<option value="">All</option>
+<option value="Testing Pending">Testing Pending</option>
+<option value="Under Testing">Under Testing</option>
+<option value="Testing Completed">Testing Completed</option>
+<option value="Test Report Pending">Test Report Pending</option>
+<option value="Conform">Conform</option>
+<option value="Doesn't Conform">Doesn't Conform</option>
+</select></div>
+</div>
+<div class="actions"><button onclick="openEditor()">+ Add New DI</button><button class="secondary" onclick="clearFilters()">Clear Filters</button></div>
+</div>
+<div class="panel tablewrap"><table><thead><tr>
+<th>DI No.</th><th>DI Date</th><th>Material</th><th>Supplier</th><th>Store/Division</th><th>Agency/Lab</th><th>Testing Date</th><th>Section</th><th>Test Status</th><th>Overall Status</th><th>Remarks</th><th>Action</th>
+</tr></thead><tbody id="tbody"></tbody></table></div>
+</section>
+
+<section id="reports" class="tab">
+<div class="panel">
+<h3>Import Excel Sheet</h3>
+<p class="small">Import .xlsx, .xls or .csv whenever required. You can add imported records to the existing database or replace it.</p>
+<input id="excelFile" type="file" accept=".xlsx,.xls,.csv">
+<div class="actions">
+<button onclick="importExcel(false)">Add Imported Records</button>
+<button onclick="importExcel(true)">Replace Current Records</button>
+</div>
+<p id="importMsg" class="small"></p>
+</div>
+<div class="panel">
+<h3>WhatsApp Testing Status Update</h3>
+<p class="small">Select a Lab Name to generate the standard WhatsApp message for all matching DI records.</p>
+<div class="grid">
+<div><label>Lab Name</label><select id="waLab" onchange="generateLabWhatsApp()"><option value="">All Labs</option></select></div>
+</div>
+<div class="actions">
+<button onclick="changeAdminPassword()">Change Delete Password</button>
+<button onclick="copyLabWhatsApp()">Copy WhatsApp Message</button>
+<button onclick="openLabWhatsApp()">Open WhatsApp</button>
+<button onclick="copySummary()">Copy Full Summary</button>
+<button onclick="downloadCSV()">Export Current Data</button>
+</div>
+<textarea id="summaryPreview" readonly style="margin-top:10px;min-height:260px"></textarea>
+</div>
+</section>
+</main>
+
+<div id="modal" class="modal"><div class="modalbox">
+<h3 id="modalTitle">Add DI</h3>
+<div class="grid">
+<div><label>DI No.</label><input id="f_di"></div>
+<div><label>DI Date</label><input id="f_didate" type="date"></div>
+<div><label>Material</label><input id="f_material"></div>
+<div><label>Supplier</label><input id="f_supplier"></div>
+<div><label>Store/Division</label><input id="f_store"></div>
+<div><label>Testing Agency / LAB</label><input id="f_agency" placeholder="ERDA-Vadodara"></div>
+<div><label>Testing Date</label><input id="f_testdate" type="date"></div>
+<div><label>Laboratory Section</label><select id="f_section"><option></option><option>Cable Section</option><option>SMC Section</option><option>Transformer Section</option><option>Switchgear Section</option><option>Material Section</option><option>Oil Section</option></select></div>
+<div><label>Test Status</label><select id="f_status"><option>Testing Pending</option><option>Under Testing</option><option>Conform</option><option>Doesn't Conform</option></select></div>
+<div><label>Overall Status</label><input id="f_overall" placeholder="Testing Completed but Test Report Pending"></div>
+<div style="grid-column:1/-1"><label>Remarks</label><textarea id="f_remarks"></textarea></div>
+</div>
+<div class="actions"><button onclick="saveRecord()">Save</button><button class="secondary" onclick="closeEditor()">Cancel</button></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const initialRecords = [{"di": ""}];
+const aliases = {
+ di:['DI No.','DI No','DI Number','DI No/Number'],
+ didate:['DI Date','Date'],
+ material:['Material','Material Name','Item','Material Description'],
+ supplier:['Supplier','Supplier Name','Vendor','Vendor Name'],
+ store:['Store','Division','Store Name','Store/Division'],
+ agency:['Testing Agency','Testing Lab','Lab','Laboratory','Lab Name','Agency'],
+ testdate:['Testing Date','Test Date'],
+ section:['Laboratory Section','Lab Section','Section','ERDA Section'],
+ status:['Test Status','Test Result','Result','Status'],
+ overall:['Overall Status','Overall'],
+ remarks:['Remarks','Remark','Comments','Comment']
+};
+let records = JSON.parse(localStorage.getItem('rsoTestingRecordsV5') || 'null') || initialRecords.map(normalizeRecord);
+let editIndex = -1;
+
+function clean(v){return v==null?'':String(v).trim()}
+function normalizeKey(k){return clean(k).toLowerCase().replace(/[^a-z0-9]/g,'')}
+function pick(row, keys){
+ const map={}; Object.keys(row).forEach(k=>map[normalizeKey(k)]=row[k]);
+ for(const k of keys){const v=map[normalizeKey(k)]; if(v!==undefined && clean(v)!=='') return clean(v)}
+ return '';
+}
+function normalizeRecord(row){
+ return {di:pick(row,aliases.di),didate:pick(row,aliases.didate),material:pick(row,aliases.material),supplier:pick(row,aliases.supplier),store:pick(row,aliases.store),agency:pick(row,aliases.agency),testdate:pick(row,aliases.testdate),section:pick(row,aliases.section),status:pick(row,aliases.status)||'Testing Pending',overall:pick(row,aliases.overall),remarks:pick(row,aliases.remarks)};
+}
+function save(){localStorage.setItem('rsoTestingRecordsV5',JSON.stringify(records));updateDashboard();populateAgencyFilter();renderTable();populateWaLabs();renderSummary();generateLabWhatsApp()}
+function showTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='records'){populateAgencyFilter();renderTable();}if(id==='reports'){populateWaLabs();renderSummary();generateLabWhatsApp()}}
+function openEditor(i=-1){
+ editIndex=i; document.getElementById('modal').classList.add('open'); document.getElementById('modalTitle').textContent=i<0?'Add New DI':'Edit DI';
+ const r=i<0?{}:records[i]; ['di','didate','material','supplier','store','agency','testdate','section','status','overall','remarks'].forEach(k=>document.getElementById('f_'+k).value=r[k]||'');
+}
+function closeEditor(){document.getElementById('modal').classList.remove('open')}
+function saveRecord(){
+ const r={}; ['di','didate','material','supplier','store','agency','testdate','section','status','overall','remarks'].forEach(k=>r[k]=document.getElementById('f_'+k).value.trim());
+ if(!r.di){alert('DI No. is required');return}
+ if(editIndex<0) records.push(r); else records[editIndex]=r; save(); closeEditor();
+}
+function getAdminPassword(){
+ return localStorage.getItem('rsoAdminPasswordV8') || '1234';
+}
+function deleteRecord(i){
+ const p=prompt('Enter password to delete this DI record:');
+ if(p===null)return;
+ if(p!==getAdminPassword()){alert('Incorrect password. Record was not deleted.');return;}
+ if(!confirm('Delete DI No. '+records[i].di+'? This cannot be undone.'))return;
+ records.splice(i,1); save(); alert('Record deleted successfully.');
+}
+function changeAdminPassword(){
+ const old=prompt('Enter current password:');
+ if(old===null)return;
+ if(old!==getAdminPassword()){alert('Incorrect current password.');return;}
+ const p1=prompt('Enter new password (minimum 4 characters):');
+ if(p1===null)return;
+ if(p1.length<4){alert('Password must be at least 4 characters.');return;}
+ const p2=prompt('Re-enter new password:');
+ if(p1!==p2){alert('Passwords do not match.');return;}
+ localStorage.setItem('rsoAdminPasswordV8',p1);
+ alert('Password changed successfully.');
+}
+function renderTable(){
+ const q=document.getElementById('search').value.toLowerCase(), a=document.getElementById('filterAgency').value.toLowerCase(), sec=document.getElementById('filterSection').value.toLowerCase(), o=document.getElementById('filterOverall').value.toLowerCase();
+ const body=document.getElementById('tbody'); body.innerHTML='';
+ records.forEach((r,i)=>{
+  const text=Object.values(r).join(' ').toLowerCase();
+  const overall=(r.overall||'').toLowerCase();
+  if(q&&!text.includes(q))return;if(a&&(r.agency||'').toLowerCase()!==a)return;if(sec&&(r.section||'').toLowerCase()!==sec)return;
+  if(o && !(r.status||'').toLowerCase().includes(o) && !overall.includes(o))return;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><b>${esc(r.di)}</b></td><td>${esc(r.didate)}</td><td>${esc(r.material)}</td><td>${esc(r.supplier)}</td><td>${esc(r.store)}</td><td>${esc(r.agency)}</td><td>${esc(r.testdate)}</td><td>${esc(r.section)}</td><td><span class="badge">${esc(r.status)}</span></td><td>${esc(r.overall)}</td><td>${esc(r.remarks)}</td><td><button onclick="openEditor(${i})">Edit</button> <button onclick="sendWhatsApp(${i})">WhatsApp</button> <button class="danger" onclick="deleteRecord(${i})">Delete</button></td>`;
+  body.appendChild(tr);
+ });
+}
+function esc(s){return clean(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function updateDashboard(){
+ const count=s=>records.filter(r=>(r.status||'').toLowerCase()===s).length;
+ document.getElementById('cTotal').textContent=records.length;
+ document.getElementById('cPending').textContent=count('testing pending');
+ document.getElementById('cUnder').textContent=count('under testing');
+ document.getElementById('cConform').textContent=count('conform');
+ document.getElementById('cNon').textContent=count("doesn't conform");
+ document.getElementById('cReport').textContent=records.filter(r=>(r.overall||'').toLowerCase().includes('report pending')).length;
+}
+function clearFilters(){document.getElementById('search').value='';document.getElementById('filterAgency').value='';document.getElementById('filterSection').value='';document.getElementById('filterOverall').value='';renderTable()}
+function populateAgencyFilter(){
+ const sel=document.getElementById('filterAgency'); if(!sel)return;
+ const current=sel.value;
+ const agencies=[...new Set(records.map(r=>r.agency).filter(Boolean))].sort();
+ sel.innerHTML='<option value="">All Agencies</option>'+agencies.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+ if(agencies.includes(current))sel.value=current;
+}
+function populateWaLabs(){
+ const sel=document.getElementById('waLab');
+ if(!sel)return;
+ const current=sel.value;
+ const labs=[...new Set(records.map(r=>r.agency).filter(Boolean))].sort();
+ sel.innerHTML='<option value="">All Labs</option>'+labs.map(x=>`<option>${esc(x)}</option>`).join('');
+ if(labs.includes(current))sel.value=current;
+}
+function labMessage(){
+ const lab=document.getElementById('waLab').value;
+ const list=lab?records.filter(r=>r.agency===lab):records;
+ const labName=lab||'ALL LABS';
+ let t=`🧪 "${labName}" :- TESTING STATUS UPDATE\\n\\n📅 *Date:* ${new Date().toISOString().slice(0,10)}\\n`;
+ list.forEach(r=>{
+   t+=`\\n*DI No.:* "${r.di}"\\n*Material:* "${r.material}" \\n*Supplier:* "${r.supplier}"\\n*Testing Agency:* "${r.agency||labName}"\\n*Testing Date:* "${r.testdate}"\\n*Testing Result:* "${r.status}"\\n*Remarks:* "${r.remarks}"\\n`;
+ });
+ return t;
+}
+function generateLabWhatsApp(){document.getElementById('summaryPreview').value=labMessage();}
+function copyLabWhatsApp(){generateLabWhatsApp();navigator.clipboard.writeText(document.getElementById('summaryPreview').value).then(()=>alert('WhatsApp message copied.'))}
+function openLabWhatsApp(){generateLabWhatsApp();window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('summaryPreview').value),'_blank');}
+function renderSummary(){
+ let t='*RSO JAMNAGAR – TESTING STATUS REPORT*\\n\\n';
+ t+='Total DI Records: '+records.length+'\\n';
+ ['Testing Pending','Under Testing','Conform',"Doesn't Conform"].forEach(s=>t+=s+': '+records.filter(r=>r.status===s).length+'\\n');
+ t+='\\n*DI-wise Details*\\n';
+ records.forEach((r,i)=>{t+=`\\n${i+1}. DI No.: ${r.di}\\nMaterial: ${r.material}\\nSupplier: ${r.supplier}\\nStore: ${r.store}\\nAgency: ${r.agency}\\nTesting Date: ${r.testdate}\\nSection: ${r.section}\\nStatus: ${r.status}\\nOverall: ${r.overall}\\nRemarks: ${r.remarks}\\n`;});
+ document.getElementById('summaryPreview').value=t;
+}
+function recordMessage(r){return `*RSO JAMNAGAR – TESTING UPDATE*\\n\\nDI No.: ${r.di}\\nDI Date: ${r.didate}\\nMaterial: ${r.material}\\nSupplier: ${r.supplier}\\nStore/Division: ${r.store}\\nTesting Agency/LAB: ${r.agency}\\nTesting Date: ${r.testdate}\\nLaboratory Section: ${r.section}\\nTesting Status: ${r.status}\\nOverall Status: ${r.overall}\\nRemarks: ${r.remarks}`;}
+function sendWhatsApp(i){window.open('https://wa.me/?text='+encodeURIComponent(recordMessage(records[i])),'_blank');}
+function copySummary(){renderSummary();navigator.clipboard.writeText(document.getElementById('summaryPreview').value).then(()=>alert('Summary copied for WhatsApp.'))}
+function openWhatsApp(){renderSummary();window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('summaryPreview').value),'_blank')}
+function downloadCSV(){
+ const headers=['DI No.','DI Date','Material','Supplier','Store/Division','Testing Agency/LAB','Testing Date','Laboratory Section','Test Status','Overall Status','Remarks'];
+ const rows=[headers,...records.map(r=>[r.di,r.didate,r.material,r.supplier,r.store,r.agency,r.testdate,r.section,r.status,r.overall,r.remarks])];
+ const csv=rows.map(row=>row.map(v=>`"${clean(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='RSO_Jamnagar_Testing_Data.csv';a.click();
+}
+function parseCSV(text){
+ const lines=text.split(/\\r?\\n/).filter(x=>x.trim()); if(!lines.length)return [];
+ const parse=line=>{let out=[],cur='',q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};
+ const h=parse(lines[0]); return lines.slice(1).map(l=>{const v=parse(l),o={};h.forEach((x,i)=>o[x]=v[i]||'');return normalizeRecord(o)});
+}
+function importExcel(replace){
+ const file=document.getElementById('excelFile').files[0];if(!file){alert('Please select an Excel/CSV file first.');return}
+ const msg=document.getElementById('importMsg');msg.textContent='Reading '+file.name+'...';
+ const reader=new FileReader();
+ reader.onload=e=>{
+  try{
+   let imported=[];
+   if(file.name.toLowerCase().endsWith('.csv')) imported=parseCSV(e.target.result);
+   else {const wb=XLSX.read(e.target.result,{type:'array',cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]]; imported=XLSX.utils.sheet_to_json(ws,{defval:''}).map(normalizeRecord)}
+   imported=imported.filter(r=>r.di||r.material||r.supplier);
+   if(replace){records=imported}
+   else{
+    imported.forEach(n=>{
+      const idx=records.findIndex(r=>r.di&&n.di&&r.di.toLowerCase()===n.di.toLowerCase());
+      if(idx>=0) records[idx]={...records[idx],...Object.fromEntries(Object.entries(n).filter(([k,v])=>clean(v)!==''))};
+      else records.push(n);
+    });
+   }
+   save();msg.innerHTML='<span class="success">Imported '+imported.length+' record(s) successfully.</span>';
+   alert((replace?'Replaced with ':'Added/updated ')+imported.length+' record(s).');
+  }catch(err){msg.innerHTML='<span class="warn">Import failed: '+esc(err.message)+'</span>'}
+ };
+ if(file.name.toLowerCase().endsWith('.csv'))reader.readAsText(file);else reader.readAsArrayBuffer(file);
+}
+updateDashboard();populateAgencyFilter();renderTable();populateWaLabs();renderSummary();generateLabWhatsApp();
+</script>
+</body></html>
